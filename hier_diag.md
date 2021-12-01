@@ -140,7 +140,7 @@ This structure is flexible.  This flexibility brings many benefits.
 ```
 1.  It can also be taken apart.  The xphy part can be shared with the phy vendor so they can refine the phy internal structure and commands.
 
-It has proper separation of ownership.  For each sub system, the domain experts can work on refining the debugging commands for that specific node.  All work from experts on all domain collectively form a comprehensive and powerful tool for debugging it the full system.
+It has proper separation of ownership.  For each sub system, the domain experts can work on refining the sub structure, debugging commands and checks for that specific node.  All work from the experts on all the domains collectively form a comprehensive and powerful tool for debugging the full system.
 
 It also acts like wiki.  It actually eliminates the need of much information in the wiki because the required domain information has been embedded into the code.  If one is indeed interested in learning the vendor commands details, it is much easier to just see the raw commands from the log and see how is invoked, rather than reading wiki and try running manually.
 
