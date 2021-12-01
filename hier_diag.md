@@ -119,11 +119,11 @@ When checking the external PHY (xphy), we need to find the xphy id, lane mask, a
 
 The domain specific command which requires much domain knowledge as below
 ```
-bcm_shell fsw005.p076.f01.pnb2 --timeout 3000 -c 'xphy lw_dsc phy_id=0x48 if_side=1 lane_mask=0x100000'
+bcm_shell host001 --timeout 3000 -c 'xphy lw_dsc phy_id=0x48 if_side=1 lane_mask=0x100000'
 ```
 The framework simplifies it to
 ```
- eth4/9/1.link.xphy_sys.lane1 show
+diag host001 tor:intf[eth4/9/1] check xphy.lane1
 ```
 ## Benefits
 This structure is flexible.  This flexibility brings many benefits.
