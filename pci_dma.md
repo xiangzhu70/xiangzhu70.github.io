@@ -38,17 +38,15 @@ It is often seen that TX and RX use separate and different hardware blocks for D
 |	|owner	|background tx thread	|	|app layer	|	|hw	|	|hw	|	|
 |	|triggered by	|intr_tx_done, async	|	|sync, called by pkt_tx	|	|hw poll, or sw PCI write	|	|hw internal	|	|
 |	|process BD	|free data buffer	|	|fill data buffer pointed by BD	|	|DMA fetching pkt from memory into ASIC	|	|Send pkt to wire	|	|
-|	|Good state	|	|many, so pkt_tx() can be called without being blocked	|	|few, hw quickly follows to take the BDs	|	|few, hw quickly follows to send pkt out, not stuck	|	|few, sw background thread quickly takes back BD, frees the associated data buffer, makes BD availble for next tx	|
+|	|Good state	|	|many BDs, so pkt_tx() can be called without being blocked	|	|few, hw quickly follows to take the BDs	|	|few, hw quickly follows to send pkt out, not stuck	|	|few, sw background thread quickly takes back BD, frees the associated data buffer, makes BD availble for next tx	|
 |	|Bad state	|	|few, or zero, pkt_tx() is blocked	|	|many, hw is stuck	|	|many, hw is stuck	|	|many, sw is stuck	|
 |	|	|	|	|	|	|	|	|	|	|
 |RX	|BD in between	|	|BD with received data acknoledged by software	|	|BD with rx data processed.  Waiting for hw to take back.  The associated buffer are free for hw to fill in rx data.	|	|BD accepted by hw, available to be filled if there is any incoming pkt from wire	|	|BD with data recieved in memory.  Waiting for sw to take.	|
 |	|owner	|background rx thread	|	|whichever pkt processing thread	|	|hw	|	|hw	|	|
-|	|triggered by	|intr_rx_pkt_arrived, async	|	|	|	|hw poll, or sw PCI write	|	|In good state waiting for data arriving from wire;
-In bad state, waiting for BD	|	|
-|	|process BD	|process received pkt in place, or dispatch to different threads	|	|process received pkt data	|	|hw waiting for data from wire.  if there is, fill data.  if not, wait here.	|	|Get free host memory from avaialble BD,
-DMA delivering pkt data from ASIC to memory	|	|
+|	|triggered by	|intr_rx_pkt_arrived, async	|	|	|	|hw poll, or sw PCI write	|	|In good state waiting for data arriving from wire; In bad state, waiting for BD	|	|
+|	|process BD	|process received pkt in place, or dispatch to different threads	|	|process received pkt data	|	|hw waiting for data from wire.  if there is, fill data.  if not, wait here.	|	|Get free host memory from avaialble BD, DMA delivering pkt data from ASIC to memory	|	|
 |	|Good state	|	|0, or few	|	|few, hw quickly follows to take back BD, so it has data buffer for filling the next received pkt	|	|many, hw has many availble BDs and buffers to fill pkts	|	|few, sw quickly responds to intr_rx_pkt_arrived	|
-|	|Bad state	|	|many, sw is stuck, not procesing received data	|	|many, hw is stuck	|	|few, hw has no BD available for filling pkts.	|	|many, sw is stuck, not respoinding to intr_rx_pkt_arrived	|
+|	|Bad state	|	|many BDs, sw is stuck, not procesing received data	|	|many, hw is stuck	|	|few, hw has no BD available for filling pkts.	|	|many, sw is stuck, not respoinding to intr_rx_pkt_arrived	|
 |	|	|	|	|	|	|	|	|	|	|
 
 ### Capabilities
