@@ -15,7 +15,7 @@ Among these types, much of #1-4 can be built into the tools and be automated.  T
 
 ## Structure
 
-Let's take a networking switch  as an example to see how this framework helps.
+Let's take a top-of-rack (TOR) networking switch as an example to see how this framework helps.
 
 diag TOR -n host=\<hostname> -x  show -t
 The tool enters the node "system".  The node discovers the target device is a modelA model, so it morphs into a "system\<modelA>" node, and shows a modelA structure.
@@ -149,3 +149,5 @@ It can be particularly useful when debugging a large scale infra, when the probl
 Not only for diagnostics, it is also useful for some general software development work such as porting a large module to a new platform, bringing up a new hardware.  The hierarchy of checks is a systematic way to quickly discover a large number of discrepencies.
 
 
+> Disclaim:
+> This post uses some structure info from a networking switch model open sourced in Open Compute Project.  This is no company confidential information. 
