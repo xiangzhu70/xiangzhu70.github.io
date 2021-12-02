@@ -1,7 +1,7 @@
 
 
 
-# Slow Path Design
+# Host-PCI DMA TX/RX Design
 
 
 ### Notation
