@@ -130,7 +130,7 @@ This structure is flexible.  This flexibility brings many benefits.
 
 1.  It can be easily extended.  When we observe a new link down cause, we could add a new dependency entry, so the next person running the tool can see the cause quickly without repeating the same debugging.
 
-1.  It can easily aggregate to support large systems.
+1.  It can easily aggregate to support large systems.  The chains of checks and their dependencies provide debug paths from top level to deep down nodes.
 ```
 	|Fleet
 	|--data_center [1…10]
@@ -146,7 +146,7 @@ It also acts like wiki.  It actually eliminates the need of much information in 
 
 It can be particularly useful when debugging a large scale infra, when the problem involves many sub systems, and there is no one knowing every sub system.  We can just dive into the structure, follow the chain of the check dependencies, and drill deep down into low level nodes to root cause the problem.  It is a very scalable tool to handle the complex infra at scale, especially for cross-team debugging.
 
-Not only for diagnostics, it is also useful for some general software development work such as porting a large module to a new platform, bringing up a new hardware.  The hierarchy of checks is a systematic way to quickly discover a large number of discrepencies.  It could also help in driving a project, which integrites many modules with deep and complex internal logic, from teammates, other teams, or vendors.  If the sub systems are set up with this framework, so there are checks and dependency chains built deep into the sub systems, then it will be easy to ensure the health of the overall integrated system, and quickly debug the problems when they happen.
+Not only for diagnostics, it is also useful for some general software development work such as porting a large module to a new platform, bringing up a new hardware.  The hierarchy of checks is a systematic way to quickly discover a large number of discrepancies.  It could also help in driving a project, which integrites many modules with deep and complex internal logic, from teammates, other teams, or vendors.  If the sub systems are set up with this framework, so there are checks and dependency chains built deep into the sub systems, then it will be easy to ensure the health of the overall integrated system, and quickly trace down where the problem is.
 
 
 > Disclaim:
