@@ -30,6 +30,7 @@ It is often seen that TX and RX DMA buffer descriptor queues are designed differ
     * For both packet TX and RX, the BD ring operation flows are the same.  The BD processing parts have different actions depending on TX or RX contexts.  See the “process BD data” rows in the table.
 
 #### Table
+
 |	    |	    |	    |   	|	    |	    |	    |	    |	    |	    |
 |---	|---	|---	|---	|---	|---	|---	|---	|---	|---	|
 |	    |	            |Software	|	|	|	|Hardware	|	|	|	|
@@ -52,9 +53,9 @@ It is often seen that TX and RX DMA buffer descriptor queues are designed differ
 |	|	|	|	|	|	|	|	|	|	|
 
 #### TX (sw->hw) Procedure
- 1. Set up packet data buffer and descriptor ring
+ 1. Allocate packet data buffer and descriptor ring.
 	 a. Allocate a packet data buffer with N equal-sized slots in contiguous host memory.
-	 b. Set up a descriptor ring of size N.  Each one is associated with one data buffer slot.
+	 b. Allocate a descriptor ring of size N.  Each one is associated with one data buffer slot.
 	 
  2. TX setup.  Set sw_put, hw_get and hw_put to 0.  Set sw_get to N-1.  This means there are N-1 data buffer slots for software to fill in data.
  3. A software app calls pkt_tx().
@@ -65,7 +66,7 @@ It is often seen that TX and RX DMA buffer descriptor queues are designed differ
 
 #### RX (hw->sw) Procedure
 
- 1. 1 is the same as TX
+ 1. Step #1 is the same as TX.   Allocate packet data buffer and descriptor ring.
  2. RX setup.  Set hw_put, hw_get and sw_put to 0.  Set hw_get to N-1.  This means there are N-1 data buffer slots for hardware to fill in data.
  3. Upon receiving a packet, hardware tries to send it to the host.  It tries get space.  It tries to advance hw_put  if hw_put+1 != hw_get.  For jumbo packet larger than one data buffer slot, it tries to get multiple slots.
  4. Once software sees it can get enough slots, it fills data into the host data buffer (via DMA), and then advances hw_put.  And then it sends interrupt rx_recv.
