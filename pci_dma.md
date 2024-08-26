@@ -12,8 +12,8 @@
 
 * sw — software running on the host
 * hw — hardware PCI device, such as ethernet controllers, switches, FPGA , anything exchanging data with CPU
-* sw_get -- a pointer to the slot hardware will get next
-* sw_put -- a pointer to the slot hardware will put next
+* sw_get -- a pointer to the slot software will get next
+* sw_put -- a pointer to the slot software will put next
 * hw_get -- a pointer to the slot hardware will get next
 * hw_put -- a pointer to the slot hardware will put next
 
