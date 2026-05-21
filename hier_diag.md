@@ -1,153 +1,224 @@
-# A Hierarchical OO Diag Framework
+# Hierarchical Diagnostics and Triage
+
+This note describes the original idea behind a hierarchical diagnostics model:
+treat a complex system as a structured graph of diagnostic objects, each with
+its own local state, commands, checks, and dependencies.
+
+This idea is broader than any one implementation. It later influenced multiple
+systems and projects, including higher-level operational environments and
+lower-level system software.
 
 ## Motivation
-Debugging challenges often come from lack of domain knowledge.  It is hard to grasp all possible knowledge to be prepared for a new bug.
 
-To debug a problem in any domain, the following types of domain knowledge are need.
+Debugging is often blocked by lack of domain knowledge. In a large system, the
+hard part is not only running commands. It is knowing:
 
-1.  Structural information.  What are the major parts in this module, how each parts are wired.  Especially when debugging hardware problems, the circuit mapping, bus connections, register offsets are required.
-2.  Categorization information.  Commonalities, and differences (In OO terms, inheritance and overrides).
-3.  Interactions and dependencies, causalities.
-4.  Tools, states, expectations.  How to run the tools, interpret output, check states, compare with expectations and spot discrepancies.
-5.  design, inner-working mechanism, trade-off, limitations.
+1. what the major parts are
+2. how they are wired together
+3. what depends on what
+4. which tools and checks to run
+5. how to interpret results against expected state
 
-Among these types, much of #1-4 can be built into the tools and be automated.  This is the aim of this framework.  It models a large and complex system as a hierarchical OO structure of nodes.  Each node represents one sub system, with local commands and settings, and states, like a typical OO object.  The type #1-4 information is embedded into the nodes and implicitly used to derive node type, local settings, and support the commands.  They are hidden away from the users.  What the users see is  a clear browser-like user interface.  They can easily traverse the nodes, run the node local commands and checks, and get meaningful results.
+Much of that knowledge can be embedded into the diagnostics structure itself.
+That is the goal of this model.
 
-## Structure
+## Core Idea
 
-Let's take a top-of-rack (TOR) networking switch as an example to see how this framework helps.
+Represent a large system as a hierarchy of diagnostic nodes.
 
-diag TOR -n host=\<hostname> -x  show -t
-The tool enters the node "system".  The node discovers the target device is a modelA model, so it morphs into a "system\<modelA>" node, and shows a modelA structure.
-The tool shows the structure of a top-of-rack (TOR) networking switch device:
+Each node represents one subsystem and can expose:
+
+- structure
+- local settings
+- state
+- commands
+- checks
+- dependencies
+
+The user should not need to remember all of the raw hardware mapping, command
+syntax, or subsystem-specific procedure. Those details are encapsulated in the
+nodes. The user should see a clear navigable structure and be able to traverse
+it, inspect state, run local commands, and follow dependency chains.
+
+## What The Hierarchy Captures
+
+The hierarchy is valuable because it can encode several kinds of knowledge at
+once:
+
+- structural knowledge: what the system contains
+- categorization: common behavior and specialization
+- dependencies and causality
+- operational knowledge: commands, checks, expectations
+
+That combination turns the hierarchy into both a diagnostic tool and a
+knowledge model.
+
+## Example Structure
+
+As an example, consider a top-of-rack networking switch. A system-level node
+can expose a structure like:
+
+```text
+system<modelA>
+|--agent
+|  |--process
+|  |  |--run_env
+|  |--swSwitch
+|  |--hwSwitch
+|  |--slow_path
+|  |--data_path
+|--platform<modelA>
+|  |--mgnt_intf
+|  |--kernel
+|  |--bmc
+|  |--pim[1..8]
+|  |  |--fpga
+|  |  |--qsfp[1..16]
+|  |  |--xphy[1..4]
+|  |  |  |--lane[0..3]
+|--intf[eth[2..9]/[1..16]/1]
+|--sdk
+|--asic<TH3>
+|  |--ports
 ```
-|--system\<modelA>
-|--|--agent
-|--|--|--process
-|--|--|--|--run_env
-|--|--|--swSwitch
-|--|--|--hwSwitch
-|--|--|--slow_path
-|--|--|--data_path
-|--|--platform\<model>
-|--|--|--mgnt_intf
-|--|--|--kernel
-|--|--|--bmc
-|--|--|--pim[1..8]
-|--|--|--|--fpga
-|--|--|--|--qsfp[1..16]
-|--|--|--|--xphy[1..4]
-|--|--|--|--|--lane[0..3]
-|--|--intf[eth[2..9]/[1..16]/1]
-|--|--sdk
-|--|--asic\<TH3>
-|--|--|--ports
-```
-# Commands
-At each node, there can be commands attached.
-```
-diag tor -n host=\<hostname> -x eth4/9/1.link show cmds -t
-|--link\<ce40>
-[cmd] xphy_map
-[cmd] status
-[cmd] iphy_to_xphy_prbs
-[cmd] xphy_to_iphy_prbs
-|--iphy
-[cmd] dsc
-|--[0..1] lane
-|--lane
-[cmd] dsc
-|--xphy_sys
-|--[0..1] lane
-|--lane
-[cmd] lwdsc
-[cmd] summary
-|--xphy_line
-|--[0..3] lane
-|--lane
-[cmd] lwdsc
-[cmd] summary
-|--qsfp
-[cmd] show
-```
-## Checks and dependencies
-There can also be checks attached.
-diag tor -n host=\<hostname> -x eth4/9/1.link show checks -t
-```
-|--link\<ce40>
-[check] ps_up
-|--iphy
-|--[0..1] lane
-|--lane
-[check] signal_detect
-[check] pll_lock
-|--xphy_sys
-[check] config
-|--[0..1] lane
-|--lane
-[check] peak
-[check] vga
-[check] SNR
-|--xphy_line
-|--[0..3] lane
-|--lane
-[check] signal_detect
-[check] pll_lock
-|--qsfp
-[check] LOS
-```
-The checks can be linked with dependency relations.
 
-An interface[eth2/2/1] check depends on the following conditions.
-```[
-"..asic.port2 == OK",
-"..platform.pim1.xphy2 == OK",
-"..platform.pim1.qsfp10 == OK",
-]
+The exact structure is not the point. The point is that the diagnostic system
+already knows the object model of the target.
+
+## Local Commands
+
+Each node can expose commands appropriate to that subsystem.
+
+For example:
+
+```text
+link<ce40>
+  [cmd] xphy_map
+  [cmd] status
+  [cmd] iphy_to_xphy_prbs
+  [cmd] xphy_to_iphy_prbs
+iphy
+  [cmd] dsc
+lane
+  [cmd] dsc
+xphy_sys
+  lane
+    [cmd] lwdsc
+    [cmd] summary
+xphy_line
+  lane
+    [cmd] lwdsc
+    [cmd] summary
+qsfp
+  [cmd] show
 ```
-Here dependencies( type 3) and hw mapping (type 1) are also auto-loaded. 
 
-When doing the link down debugging, the command is diag -n host=\<hostname> tor:system.intf[eth2/2/1] check.
+The key idea is that the user invokes commands through the hierarchy, not by
+manually reconstructing the underlying device mapping every time.
 
-The tool enters the interface node "intf[eth2/2/1]", and runs the check command.
-It follows this dependency list, and check asic port, qsfp, and xphy.  Why reaching xphy, it sees xphy's dependency is specified as "all lane[0-3] = OK", so it go ahead checks each lane.  For the lane, the list of checks are "LOS, PLL_lock".  
+## Checks and Dependencies
 
-## Command execution
+Nodes can also expose checks, and those checks can have dependencies.
 
-Directly running the domain specific tool would require much domain knowledge such as hardware mapping (type 1) and tool usage (type 4).
-When checking the external PHY (xphy), we need to find the xphy id, lane mask, and know how to run it, and interpret the results.  The command could be from a vendor, or from an internal tool.  Each could be different depending on the vendor and model. This framework acts a OO wrapper, encapsulate all these details, and present just a simple check command as xphy.lane.[check].
+Example:
 
-The domain specific command which requires much domain knowledge as below
+```text
+link<ce40>
+  [check] ps_up
+iphy
+  lane
+    [check] signal_detect
+    [check] pll_lock
+xphy_sys
+  [check] config
+  lane
+    [check] peak
+    [check] vga
+    [check] SNR
+xphy_line
+  lane
+    [check] signal_detect
+    [check] pll_lock
+qsfp
+  [check] LOS
 ```
+
+An interface-level check can then depend on lower-level conditions such as:
+
+```text
+..asic.port2 == OK
+..platform.pim1.xphy2 == OK
+..platform.pim1.qsfp10 == OK
+```
+
+Now the diagnostic path is explicit. A top-level check can recursively drive
+the right lower-level checks without the operator manually translating between
+layers.
+
+## Encapsulation Of Domain Knowledge
+
+Without this structure, many routine checks require too much hidden knowledge:
+
+- hardware mapping
+- device identifiers
+- lane masks
+- vendor command syntax
+- model-specific behavior
+
+For example, a raw command might look like:
+
+```text
 bcm_shell host001 --timeout 3000 -c 'xphy lw_dsc phy_id=0x48 if_side=1 lane_mask=0x100000'
 ```
-The framework simplifies it to
-```
+
+The hierarchy can present that as something closer to:
+
+```text
 diag host001 tor:intf[eth4/9/1] check xphy.lane1
 ```
-## Benefits
-This structure is flexible.  This flexibility brings many benefits.
 
-1.  It can be easily extended.  When we observe a new link down cause, we could add a new dependency entry, so the next person running the tool can see the cause quickly without repeating the same debugging.
+The framework becomes an object-oriented wrapper around the real domain tools.
 
-1.  It can easily aggregate to support large systems.  The chains of checks and their dependencies provide debug paths from top level to deep down nodes.
-```
-	|Fleet
-	|--data_center [1…10]
-	|--|--|rack [1..1000]
-	|--|--|--tor
-	|--|--|--servers [1..100]
-```
-1.  It can also be taken apart.  The xphy part can be shared with the phy vendor so they can refine the phy internal structure and commands.
+## Why This Scales
 
-It has proper separation of ownership.  For each sub system, the domain experts can work on refining the sub structure, debugging commands and checks for that specific node.  All work from the experts on all the domains collectively form a comprehensive and powerful tool for debugging the full system.
+This model scales well because it supports:
 
-It also acts like wiki.  It actually eliminates the need of much information in the wiki because the required domain information has been embedded into the code.  If one is indeed interested in learning the vendor commands details, it is much easier to just see the raw commands from the log and see how is invoked, rather than reading wiki and try running manually.
+- extension: new checks or dependencies can be added as new failure modes are
+  discovered
+- aggregation: local subsystem knowledge can roll up into system-wide or
+  fleet-wide triage
+- separation of ownership: experts can refine their own subsystem nodes without
+  one team owning the entire global diagnostic model
+- reuse: a subsystem subtree can be shared, adapted, or exported independently
 
-It can be particularly useful when debugging a large scale infra, when the problem involves many sub systems, and there is no one knowing every sub system.  We can just dive into the structure, follow the chain of the check dependencies, and drill deep down into low level nodes to root cause the problem.  It is a very scalable tool to handle the complex infra at scale, especially for cross-team debugging.
+It also works as executable documentation. Instead of relying on scattered wiki
+pages, the operational knowledge is embedded into the diagnostic model itself.
 
-Not only for diagnostics, it is also useful for some general software development work such as porting a large module to a new platform, bringing up a new hardware.  The hierarchy of checks is a systematic way to quickly discover a large number of discrepancies.  It could also help in driving a project, which integrites many modules with deep and complex internal logic, from teammates, other teams, or vendors.  If the sub systems are set up with this framework, so there are checks and dependency chains built deep into the sub systems, then it will be easy to ensure the health of the overall integrated system, and quickly trace down where the problem is.
+## Why This Matters
 
+This approach is useful for:
 
-> Disclaim:
-> This post uses some structure info from a networking switch model open sourced in Open Compute Project.  This is no company confidential information. 
+- diagnostics and triage
+- bring-up of large integrated systems
+- hardware/software boundary debugging
+- platform porting
+- complex multi-team integration work
+
+It is especially useful when no single person fully understands every subsystem
+involved in the problem.
+
+## Closing
+
+The central idea is simple:
+
+make the diagnostic structure reflect the real system structure, and attach the
+operational knowledge directly to the relevant nodes.
+
+That makes debugging less about remembering hidden tribal knowledge and more
+about traversing an explicit, inspectable, and automatable model of the
+system.
+
+> Note:
+> This post uses an open structural example based on networking-switch style
+> systems. It is describing a general diagnostics principle, not one
+> company-specific implementation.
